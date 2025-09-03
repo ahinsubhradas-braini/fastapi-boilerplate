@@ -1,5 +1,5 @@
 # Import python core libary dependices
-import json
+from contextlib import asynccontextmanager
 
 # Imports fastapi dependices
 from fastapi import FastAPI, Depends, HTTPException, status
@@ -10,13 +10,22 @@ from fastapi.openapi.utils import get_openapi
 from fastapi import status
 
 # Imports from project or 3rd party libary dependices
-from src.endpoints.v1.api_v1_router import api_v1_router
-from slowapi.middleware import SlowAPIMiddleware
+from src.apps.v1.api_v1_router import api_v1_router
 from src.core.config import get_settings
 from src.common.response.common_response_helper import success_response
+from src.core.db.db_config import DbAdmin
 
 # Set settings
 settings = get_settings()
+
+# Lifespan event handlers
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Create the database tables, but no need to run this every time the app starts so comment it out when not needed
+    # await DbAdmin.create_db_tables()
+    yield
+    # Close the database engine
+    await DbAdmin.close()
 
 # Fastapi application creation
 app = FastAPI(
@@ -29,7 +38,8 @@ app = FastAPI(
         "email": "development-team@.example.com",
     },
     docs_url=None, # Disable deafult docs url for swagger
-    redoc_url=None
+    redoc_url=None,
+    lifespan=lifespan
 )
 
 
@@ -45,7 +55,7 @@ app.add_middleware(
 # Root Handeling: If any user trigger base api endpoint it will send this json
 @app.get("/")
 async def root():
-    return success_response(
+    return await success_response(
         data={
             "message": f"Hello from {settings.application_name},please check {settings.application_url}",
             "environment": settings.application_env,
@@ -61,7 +71,7 @@ Adding security in swagger api docs start here
 security = HTTPBasic()
 
 # Verify credentials what user will give in the time of opening swagger docs
-def verify_credentials(credentials: HTTPBasicCredentials = Depends(security)):
+async def verify_credentials(credentials: HTTPBasicCredentials = Depends(security)):
     correct_username = settings.swagger_username
     correct_password = settings.swagger_password
 
@@ -71,12 +81,12 @@ def verify_credentials(credentials: HTTPBasicCredentials = Depends(security)):
 
 # Protect Swagger UI
 @app.get("/docs", include_in_schema=False)
-def get_documentation(_: bool = Depends(verify_credentials)):
+async def get_documentation(_: bool = Depends(verify_credentials)):
     return get_swagger_ui_html(openapi_url="/openapi.json", title="Secure Docs")
 
 # Protect OpenAPI schema too
 @app.get("/openapi.json", include_in_schema=False)
-def openapi(_: bool = Depends(verify_credentials)):
+async def openapi(_: bool = Depends(verify_credentials)):
     return get_openapi(title="My API", version="1.0.0", routes=app.routes)
 
 """
