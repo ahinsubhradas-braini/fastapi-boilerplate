@@ -1,5 +1,5 @@
 # Environment ignore
-.env.dev
+.env
 
 # Virtual environment ignore
 venv/
