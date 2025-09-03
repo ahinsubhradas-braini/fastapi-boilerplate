@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     swagger_username: str
     swagger_password: str
 
+    # Dash creds
+    dash_username: str
+    dash_password: str
+    
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 def get_settings():
     return Settings()
