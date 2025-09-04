@@ -16,9 +16,7 @@ from src.common.response.common_response_helper import success_response
 from src.core.db.db_config import DbAdmin
 from src.dash_app.dash_app import create_dash_app
 from src.dash_app.routes import router as dash_router
-from src.dash_app.middleware import DashAuthMiddleware
 from starlette.middleware.wsgi import WSGIMiddleware
-from starlette.middleware.sessions import SessionMiddleware
 
 # Set settings
 settings = get_settings()
@@ -46,19 +44,6 @@ app = FastAPI(
     redoc_url=None,
     lifespan=lifespan
 )
-
-# Add SessionMiddleware first
-app.add_middleware(
-    SessionMiddleware,
-    secret_key="supersecret",
-    session_cookie="dash_session",
-    max_age=3600,         # 1 hour session
-    same_site="lax",      # Cookie sent on redirects
-    https_only=False  
-    )
-
-# Then register dash_auth_middleware after sessions exist
-app.add_middleware(DashAuthMiddleware)
 
 # Allow cors origin
 app.add_middleware(

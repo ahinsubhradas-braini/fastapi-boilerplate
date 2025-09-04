@@ -3,40 +3,48 @@ import os
 
 # Imports from project or 3rd party libary dependices
 from fastapi import APIRouter, Request, HTTPException
-from starlette.responses import HTMLResponse, RedirectResponse
+from starlette.responses import HTMLResponse
 from src.core.config import get_settings
+from src.core.db.seeds.seeder import seed_data
 
 settings = get_settings()
 
-USERNAME = settings.dash_username
-PASSWORD = settings.dash_password
-
 router = APIRouter(include_in_schema=False)
 
-@router.get("/dev_dash/login")
+@router.get("/dev_dash")
 async def dash_login_page():
-    return HTMLResponse("""
-    <h2>Developer Dashboard Login</h2>
-    <form action='/dev_dash/login/check' method='get'>
-        <input name='username' placeholder='Username' required/>
-        <input name='password' type='password' placeholder='Password' required/>
-        <button type='submit'>Login</button>
-    </form>
+    return HTMLResponse(
+        """
+    <h2>Developer Dashboard</h2>
+    <button onclick="runSeeder()">Seed Data and Process</button>
+    <div id="output" style="margin-top: 20px;"></div>
+    
+    <script>
+        async function runSeeder() {
+            const outputDiv = document.getElementById('output');
+            outputDiv.innerHTML = 'Processing...';
+            
+            try {
+                const response = await fetch('/dev_dash/run-seeder', {
+                    method: 'POST'
+                });
+                outputDiv.innerHTML = `
+                    <p>Data seeding completed!</p>
+                `;
+            } catch (error) {
+                outputDiv.innerHTML = `<p>Error: ${error.message}</p>`;
+            }
+        }
+    </script>
     """)
 
-@router.get("/dev_dash/login/check")
-async def dash_login_check(request: Request):
-    username = request.query_params.get("username")
-    password = request.query_params.get("password")
+@router.post("/dev_dash/run-seeder")
+async def run_seeder():
+    try:
+        # Call the seed_data function to seed initial data
+        print("11111111111")
+        await seed_data()
 
-    if username != USERNAME or password != PASSWORD:
-        raise HTTPException(status_code=401, detail="Invalid Dash credentials")
-
-    request.session["dash_logged_in"] = True
-    # Redirect to trailing slash so Dash loads correctly
-    return RedirectResponse(url="/dev_dash/", status_code=303)
-
-@router.get("/dev_dash/logout")
-async def dash_logout(request: Request):
-    request.session.pop("dash_logged_in", None)
-    return HTMLResponse("<h3>Logged out. <a href='/dev_dash/login'>Login again</a></h3>")
+        return {"status": "success", "output": "Application settings created or already exist."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

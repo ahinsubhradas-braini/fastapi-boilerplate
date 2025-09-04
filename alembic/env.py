@@ -10,6 +10,7 @@ from src.core.db.db_config import DbBase
 
 # Import all models so they are registered with DbBase.metadata
 from src.apps.v1.users.models.user import User,Role,Resources, UserRoles,RoleResources
+from src.apps.v1.app_settings.models.app_settings import AppSettings
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
