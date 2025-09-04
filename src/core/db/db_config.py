@@ -2,6 +2,7 @@
 from typing import AsyncGenerator
 
 # Imports from project or 3rd party libary dependices
+from fastapi.concurrency import asynccontextmanager
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from src.core.config import settings
@@ -43,10 +44,15 @@ class DbAdmin:
         await engine.dispose()
 
 # Get a database session (async generator)
-async def get_db()-> AsyncGenerator[AsyncSession, None]:
-        """Dependency to get database session"""
-        async with async_sessionmaker() as session:
-            try:
-                yield session
-            finally:
-                await session.close()
+# Async context manager for dependency injection
+@asynccontextmanager
+async def get_db():
+    async with SessionLocal() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
